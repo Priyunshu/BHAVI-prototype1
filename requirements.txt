@@ -51,8 +51,6 @@ pandas==2.2.2
 pillow==10.4.0
 protobuf==5.27.3
 psutil==6.0.0
-pyarrow==17.0.0
-PyAudio==0.2.14
 pydeck==0.9.1
 Pygments==2.18.0
 python-dateutil==2.9.0.post0
