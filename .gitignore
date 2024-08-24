@@ -1,0 +1,14 @@
+# Ignore system and application directories
+AppData/
+*.log
+*.tmp
+*.swp
+*.swo
+*.db
+*.sqlite
+*.pyc
+*.pyo
+*.pyd
+*.git/
+
+ 
