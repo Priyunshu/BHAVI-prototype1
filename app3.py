@@ -26,20 +26,14 @@ def load_translation_model_and_tokenizer():
 
 trans_tokenizer, trans_model = load_translation_model_and_tokenizer()
 
-# Initialize chat history
-chat_history_ids = torch.tensor([]).long()  # Initialize as an empty tensor
-
 # Translator for Bengali to English
 translator = Translator()
 
 # Function to generate a response from DialoGPT
 def generate_response(prompt):
-    global chat_history_ids
     new_user_input_ids = dialo_tokenizer.encode(prompt + dialo_tokenizer.eos_token, return_tensors='pt')
-    
-    bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1) if chat_history_ids.size(0) > 0 else new_user_input_ids
+    bot_input_ids = new_user_input_ids
     chat_history_ids = dialo_model.generate(bot_input_ids, max_length=1000, pad_token_id=dialo_tokenizer.eos_token_id)
-    
     response = dialo_tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
     return response
 
@@ -141,15 +135,11 @@ st.markdown(
 
 st.markdown("<div class='title'>BHAVI <span class='small'>(prototype 1)</span></div>", unsafe_allow_html=True)  # Updated title
 
-# Display chat history
-if 'conversation_history' not in st.session_state:
-    st.session_state.conversation_history = []  # Initialize conversation history
-
 # Input and button arrangement
 with st.container():
     st.markdown("<div class='input-container'>", unsafe_allow_html=True)
     user_input = st.text_input("", key="text_input", placeholder="write to chitchat...", label_visibility="collapsed")
-    
+   
     col1, col2 = st.columns([0.1, 0.1])
     with col1:
         record_button = st.button(" 🗣️ ", key="record", help="Record Speech Input")  # Microphone icon button
@@ -163,21 +153,18 @@ if record_button:
     st.write(" কথা বলুন ")
     speech_input = recognize_speech()
     st.write(f"আমি যা শুনেছি: {speech_input}")
-    
+   
     # Translate Bengali speech input to English
     english_input = translator.translate(speech_input, src='bn', dest='en').text
     st.write(f"Translated Speech Input : {english_input}")
-    
+   
     if english_input:
         response = generate_response(english_input)
         bengali_response = translate_to_bengali(response)
-        
-        # Update conversation history
-        st.session_state.conversation_history.append((speech_input, response))
-        
+       
         st.markdown("<div class='response'><b>প্রতিক্রিয়া:</b></div>", unsafe_allow_html=True)
         st.write(bengali_response)
-        
+       
         audio_file = text_to_speech(bengali_response)
         st.audio(audio_file, format='audio/mp3')
 
@@ -185,13 +172,10 @@ if send_button:
     if user_input:
         response = generate_response(user_input)
         bengali_response = translate_to_bengali(response)
-        
-        # Update conversation history
-        st.session_state.conversation_history.append((user_input, response))
-        
+       
         st.markdown("<div class='response'><b>প্রতিক্রিয়া:</b></div>", unsafe_allow_html=True)
         st.write(bengali_response)
-        
+       
         audio_file = text_to_speech(bengali_response)
         st.audio(audio_file, format='audio/mp3')
     else:
@@ -199,5 +183,4 @@ if send_button:
 
 # Clear conversation button
 if st.button("clear 🧹"):
-    st.session_state.conversation_history = []  # Clear conversation history
     st.write("Conversation cleared.")  # Notify user that conversation has been cleared
