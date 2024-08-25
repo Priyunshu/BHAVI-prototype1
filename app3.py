@@ -53,10 +53,18 @@ def text_to_speech(text):
     audio_file.seek(0)
     return audio_file
 
-# Function to recognize speech in Bengali
-def recognize_speech():
+# Function to list available microphones
+def list_microphones():
+    microphones = sr.Microphone.list_microphone_names()
+    st.write("Available microphones:")
+    for index, name in enumerate(microphones):
+        st.write(f"{index}: {name}")
+    return microphones
+
+# Function to recognize speech in Bengali with a specified microphone index
+def recognize_speech(device_index):
     recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
+    with sr.Microphone(device_index=device_index) as source:
         st.write("Listening...")
         audio = recognizer.listen(source)
     try:
@@ -136,6 +144,10 @@ st.markdown(
 
 st.markdown("<div class='title'>BHAVI <span class='small'>(prototype 1)</span></div>", unsafe_allow_html=True)  # Updated title
 
+# List microphones and let user select
+microphones = list_microphones()
+selected_device = st.selectbox("Select Microphone", options=range(len(microphones)), format_func=lambda x: microphones[x])
+
 # Input and button arrangement
 with st.container():
     st.markdown("<div class='input-container'>", unsafe_allow_html=True)
@@ -152,7 +164,7 @@ with st.container():
 
 if record_button:
     st.write(" কথা বলুন ")
-    speech_input = recognize_speech()
+    speech_input = recognize_speech(selected_device)
     st.write(f"আমি যা শুনেছি: {speech_input}")
    
     # Translate Bengali speech input to English
