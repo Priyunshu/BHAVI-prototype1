@@ -5,7 +5,6 @@ from gtts import gTTS
 import io
 import speech_recognition as sr
 from googletrans import Translator
-import audio_recorder_streamlit as ars
 
 # Define model and tokenizer names
 dialo_model_name = "microsoft/DialoGPT-medium"
@@ -54,7 +53,21 @@ def text_to_speech(text):
     audio_file.seek(0)
     return audio_file
 
-# Streamlit UI Styling
+# Function to recognize speech in Bengali
+def recognize_speech():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.write("Listening...")
+        audio = recognizer.listen(source)
+    try:
+        text = recognizer.recognize_google(audio, language='bn-IN')  # Bengali language
+        return text
+    except sr.UnknownValueError:
+        return "Sorry, I did not understand that."
+    except sr.RequestError:
+        return "Sorry, there was an error with the speech recognition service."
+
+# Streamlit UI Styling and JavaScript for Audio Recording
 st.markdown(
     """
     <style>
@@ -117,6 +130,35 @@ st.markdown(
         margin-top: 0.5cm;  /* Move buttons down by 0.5 cm */
     }
     </style>
+    <script>
+    async function startRecording() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        const audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+
+            // Send audio to server
+            fetch('/upload', {
+                method: 'POST',
+                body: audioBlob
+            }).then(response => response.text()).then(text => {
+                document.getElementById('speech-text').innerText = text;
+            });
+        };
+
+        mediaRecorder.start();
+        setTimeout(() => mediaRecorder.stop(), 5000); // Stop recording after 5 seconds
+    }
+    </script>
     """,
     unsafe_allow_html=True
 )
@@ -130,55 +172,28 @@ with st.container():
    
     col1, col2 = st.columns([0.1, 0.1])
     with col1:
-        record_button = st.button(" 🗣️ ", key="record", help="Record Speech Input")  # Microphone icon button
+        st.markdown("<button onclick='startRecording()'>Record Speech 🗣️</button>", unsafe_allow_html=True)  # Add record button
 
     with col2:
         send_button = st.button("let's go")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-if record_button:
-    st.write(" 📢 Start speaking... ")
-    audio_data = ars.audio_recorder()  # Use audio-recorder-streamlit to record audio
-    if audio_data:
-        st.write(" 🎙️ Recognizing...")
-        recognizer = sr.Recognizer()
-        with io.BytesIO(audio_data) as source:
-            audio = recognizer.record(source)
-        try:
-            text = recognizer.recognize_google(audio, language='bn-IN')  # Bengali language
-            st.write(f" 🗣️ What I heard: {text}")
-           
-            # Translate Bengali speech input to English
-            english_input = translator.translate(text, src='bn', dest='en').text
-            st.write(f"🔤 Translated Speech Input: {english_input}")
-           
-            if english_input:
-                response = generate_response(english_input)
-                bengali_response = translate_to_bengali(response)
-               
-                st.markdown("<div class='response'><b>Response:</b></div>", unsafe_allow_html=True)
-                st.write(bengali_response)
-               
-                audio_file = text_to_speech(bengali_response)
-                st.audio(audio_file, format='audio/mp3')
-        except sr.UnknownValueError:
-            st.write("Sorry, I did not understand that.")
-        except sr.RequestError:
-            st.write("Sorry, there was an error with the speech recognition service.")
+# Placeholder for recognized speech
+st.markdown("<div id='speech-text'></div>", unsafe_allow_html=True)
 
 if send_button:
     if user_input:
         response = generate_response(user_input)
         bengali_response = translate_to_bengali(response)
        
-        st.markdown("<div class='response'><b>Response:</b></div>", unsafe_allow_html=True)
+        st.markdown("<div class='response'><b>প্রতিক্রিয়া:</b></div>", unsafe_allow_html=True)
         st.write(bengali_response)
        
         audio_file = text_to_speech(bengali_response)
         st.audio(audio_file, format='audio/mp3')
     else:
-        st.write("Please write a message...")
+        st.write("একটি বার্তা লিখুন দয়া করে..")
 
 # Clear conversation button
 if st.button("clear 🧹"):
