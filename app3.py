@@ -3,7 +3,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2Se
 import torch
 from gtts import gTTS
 import io
-import speech_recognition as sr
 from googletrans import Translator
 
 # Define model and tokenizer names
@@ -28,20 +27,20 @@ def load_translation_model_and_tokenizer():
 
 trans_tokenizer, trans_model = load_translation_model_and_tokenizer()
 
-# Instantiate Translator once, no need to create multiple instances
+# Translator for Bengali to English
 translator = Translator()
 
 # Function to generate a response from DialoGPT
 def generate_response(prompt):
     new_user_input_ids = dialo_tokenizer.encode(prompt + dialo_tokenizer.eos_token, return_tensors='pt')
-    chat_history_ids = dialo_model.generate(new_user_input_ids, max_length=1000, pad_token_id=dialo_tokenizer.eos_token_id)
+    chat_history_ids = dialo_model.generate(new_user_input_ids, max_length=500, pad_token_id=dialo_tokenizer.eos_token_id)  # Reduce max length
     response = dialo_tokenizer.decode(chat_history_ids[:, new_user_input_ids.shape[-1]:][0], skip_special_tokens=True)
     return response
 
 # Function to translate English text to Bengali
 def translate_to_bengali(text):
     input_ids = trans_tokenizer(text, return_tensors="pt").input_ids
-    generated_tokens = trans_model.generate(input_ids)
+    generated_tokens = trans_model.generate(input_ids, max_length=100)  # Reduce max length
     decoded_tokens = trans_tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
     return decoded_tokens
 
@@ -53,82 +52,11 @@ def text_to_speech(text):
     audio_file.seek(0)
     return audio_file
 
-# Function to recognize speech in Bengali
-def recognize_speech():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("Listening...")
-        audio = recognizer.listen(source)
-    try:
-        text = recognizer.recognize_google(audio, language='bn-IN')  # Bengali language
-        return text
-    except sr.UnknownValueError:
-        return "Sorry, I did not understand that."
-    except sr.RequestError:
-        return "Sorry, there was an error with the speech recognition service."
-
 # Streamlit UI Styling
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Comic+Sans+MS:wght@400;700&display=swap');  /* Import Comic Sans font */
-    .main {
-        background-color: #2E2E2E;  /* Dark grey background */
-        color: #FFFFFF;  /* White text */
-        font-family: 'Comic Sans MS', sans-serif;  /* Apply Comic Sans font */
-    }
-    .title {
-        text-align: center;
-        font-size: 2.5em;
-        color: #FFFFFF;  /* White text */
-        font-family: 'Comic Sans MS', sans-serif;  /* Apply Comic Sans font */
-        font-weight: bold;  /* Bold title text */
-    }
-    .stButton button {
-        background-color: #FFDB58;  /* Mustard color for send button */
-        color: #000000;  /* Black text */
-        font-weight: bold;  /* Bold text */
-        border-radius: 20px;  /* Rounded button shape */
-        padding: 10px 20px;
-        font-size: 16px;
-        font-family: 'Comic Sans MS', sans-serif;  /* Apply Comic Sans font */
-        margin-top: 0.5cm;  /* Move down by 0.5 cm */
-        border: 2px solid #000000;  /* Black border */
-    }
-    .stButton button[data-baseweb="button"] {
-        background-color: #FFFFFF;  /* White color for record button */
-        border-color: #000000;  /* Black border for record button */
-        color: #000000;  /* Black text */
-    }
-    .message {
-        font-size: 1.2em;
-        color: #FFFFFF;  /* White text */
-        font-weight: bold;  /* Bold message text */
-    }
-    .response {
-        background-color: #4F4F4F;  /* Lighter grey background */
-        border-radius: 10px;
-        padding: 10px;
-        margin: 10px 0;
-        color: #FFFFFF;  /* White text */
-        font-weight: bold;  /* Bold response text */
-    }
-    .small {
-        font-size: 0.6em;
-        color: #FFFFFF;  /* White text */
-        font-weight: bold;  /* Bold small text */
-    }
-    .input-container {
-        display: flex;
-        align-items: center;
-    }
-    .input-container input {
-        flex-grow: 1;
-    }
-    .input-container button {
-        margin-left: 5px;  /* Reduce gap between buttons */
-        margin-top: 0.5cm;  /* Move buttons down by 0.5 cm */
-    }
+    /* Styles here */
     </style>
     """,
     unsafe_allow_html=True
@@ -150,10 +78,9 @@ with st.container():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-
 if record_button:
-    st.write("Will arrive soon...")  # Display message instead of processing speech input
-    
+    st.write("Will arrive soon...")  # Temporary message for speech input
+
 if send_button:
     if user_input:
         response = generate_response(user_input)
@@ -167,6 +94,7 @@ if send_button:
     else:
         st.write("একটি বার্তা লিখুন দয়া করে..")
 
-# Clear conversation button
-if st.button("clear 🧹"):
-    st.write("Conversation cleared.")  # Notify user that conversation has been cleared
+# Clear conversation and cache button
+if st.button("Clear Memory 🧹"):
+    st.cache_resource.clear()  # Clears all cached resources
+    st.write("Memory cleared and resources reset.")
