@@ -1,4 +1,3 @@
-
 import streamlit as st
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM
 import torch
@@ -29,7 +28,7 @@ def load_translation_model_and_tokenizer():
 
 trans_tokenizer, trans_model = load_translation_model_and_tokenizer()
 
-# Translator for Bengali to English
+# Instantiate Translator once, no need to create multiple instances
 translator = Translator()
 
 # Function to generate a response from DialoGPT
@@ -151,25 +150,10 @@ with st.container():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-if record_button:
-    st.write(" কথা বলুন ")
-    speech_input = recognize_speech()
-    st.write(f"আমি যা শুনেছি: {speech_input}")
-   
-    # Translate Bengali speech input to English
-    english_input = translator.translate(speech_input, src='bn', dest='en').text
-    st.write(f"Translated Speech Input : {english_input}")
-   
-    if english_input:
-        response = generate_response(english_input)
-        bengali_response = translate_to_bengali(response)
-       
-        st.markdown("<div class='response'><b>প্রতিক্রিয়া:</b></div>", unsafe_allow_html=True)
-        st.write(bengali_response)
-       
-        audio_file = text_to_speech(bengali_response)
-        st.audio(audio_file, format='audio/mp3')
 
+if record_button:
+    st.write("Will arrive soon...")  # Display message instead of processing speech input
+    
 if send_button:
     if user_input:
         response = generate_response(user_input)
