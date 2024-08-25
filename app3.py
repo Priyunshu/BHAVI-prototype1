@@ -5,6 +5,7 @@ from gtts import gTTS
 import io
 import speech_recognition as sr
 from googletrans import Translator
+import audio_recorder_streamlit as ars
 
 # Define model and tokenizer names
 dialo_model_name = "microsoft/DialoGPT-medium"
@@ -52,28 +53,6 @@ def text_to_speech(text):
     tts.write_to_fp(audio_file)
     audio_file.seek(0)
     return audio_file
-
-# Function to list available microphones
-def list_microphones():
-    microphones = sr.Microphone.list_microphone_names()
-    st.write("Available microphones:")
-    for index, name in enumerate(microphones):
-        st.write(f"{index}: {name}")
-    return microphones
-
-# Function to recognize speech in Bengali with a specified microphone index
-def recognize_speech(device_index):
-    recognizer = sr.Recognizer()
-    with sr.Microphone(device_index=device_index) as source:
-        st.write("Listening...")
-        audio = recognizer.listen(source)
-    try:
-        text = recognizer.recognize_google(audio, language='bn-IN')  # Bengali language
-        return text
-    except sr.UnknownValueError:
-        return "Sorry, I did not understand that."
-    except sr.RequestError:
-        return "Sorry, there was an error with the speech recognition service."
 
 # Streamlit UI Styling
 st.markdown(
@@ -144,10 +123,6 @@ st.markdown(
 
 st.markdown("<div class='title'>BHAVI <span class='small'>(prototype 1)</span></div>", unsafe_allow_html=True)  # Updated title
 
-# List microphones and let user select
-microphones = list_microphones()
-selected_device = st.selectbox("Select Microphone", options=range(len(microphones)), format_func=lambda x: microphones[x])
-
 # Input and button arrangement
 with st.container():
     st.markdown("<div class='input-container'>", unsafe_allow_html=True)
@@ -163,36 +138,47 @@ with st.container():
     st.markdown("</div>", unsafe_allow_html=True)
 
 if record_button:
-    st.write(" কথা বলুন ")
-    speech_input = recognize_speech(selected_device)
-    st.write(f"আমি যা শুনেছি: {speech_input}")
-   
-    # Translate Bengali speech input to English
-    english_input = translator.translate(speech_input, src='bn', dest='en').text
-    st.write(f"Translated Speech Input : {english_input}")
-   
-    if english_input:
-        response = generate_response(english_input)
-        bengali_response = translate_to_bengali(response)
-       
-        st.markdown("<div class='response'><b>প্রতিক্রিয়া:</b></div>", unsafe_allow_html=True)
-        st.write(bengali_response)
-       
-        audio_file = text_to_speech(bengali_response)
-        st.audio(audio_file, format='audio/mp3')
+    st.write(" 📢 Start speaking... ")
+    audio_data = ars.audio_recorder()  # Use audio-recorder-streamlit to record audio
+    if audio_data:
+        st.write(" 🎙️ Recognizing...")
+        recognizer = sr.Recognizer()
+        with io.BytesIO(audio_data) as source:
+            audio = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(audio, language='bn-IN')  # Bengali language
+            st.write(f" 🗣️ What I heard: {text}")
+           
+            # Translate Bengali speech input to English
+            english_input = translator.translate(text, src='bn', dest='en').text
+            st.write(f"🔤 Translated Speech Input: {english_input}")
+           
+            if english_input:
+                response = generate_response(english_input)
+                bengali_response = translate_to_bengali(response)
+               
+                st.markdown("<div class='response'><b>Response:</b></div>", unsafe_allow_html=True)
+                st.write(bengali_response)
+               
+                audio_file = text_to_speech(bengali_response)
+                st.audio(audio_file, format='audio/mp3')
+        except sr.UnknownValueError:
+            st.write("Sorry, I did not understand that.")
+        except sr.RequestError:
+            st.write("Sorry, there was an error with the speech recognition service.")
 
 if send_button:
     if user_input:
         response = generate_response(user_input)
         bengali_response = translate_to_bengali(response)
        
-        st.markdown("<div class='response'><b>প্রতিক্রিয়া:</b></div>", unsafe_allow_html=True)
+        st.markdown("<div class='response'><b>Response:</b></div>", unsafe_allow_html=True)
         st.write(bengali_response)
        
         audio_file = text_to_speech(bengali_response)
         st.audio(audio_file, format='audio/mp3')
     else:
-        st.write("একটি বার্তা লিখুন দয়া করে..")
+        st.write("Please write a message...")
 
 # Clear conversation button
 if st.button("clear 🧹"):
