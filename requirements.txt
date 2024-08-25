@@ -88,4 +88,3 @@ wcwidth==0.2.13
 xxhash==3.5.0
 yarl==1.9.4
 pyaudio
-audio-recorder-streamlit
