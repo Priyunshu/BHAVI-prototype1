@@ -10,7 +10,8 @@ from googletrans import Translator
 dialo_model_name = "microsoft/DialoGPT-medium"
 trans_model_name = "csebuetnlp/banglat5_nmt_en_bn"
 
-# Load DialoGPT model and tokenizer
+# Cache the DialoGPT model and tokenizer to optimize memory usage
+@st.cache_resource
 def load_dialo_model_and_tokenizer():
     tokenizer = AutoTokenizer.from_pretrained(dialo_model_name)
     model = AutoModelForCausalLM.from_pretrained(dialo_model_name)
@@ -18,7 +19,8 @@ def load_dialo_model_and_tokenizer():
 
 dialo_tokenizer, dialo_model = load_dialo_model_and_tokenizer()
 
-# Load Bengali translation model and tokenizer
+# Cache the translation model and tokenizer to optimize memory usage
+@st.cache_resource
 def load_translation_model_and_tokenizer():
     tokenizer = AutoTokenizer.from_pretrained(trans_model_name, use_fast=False)
     model = AutoModelForSeq2SeqLM.from_pretrained(trans_model_name)
@@ -32,9 +34,8 @@ translator = Translator()
 # Function to generate a response from DialoGPT
 def generate_response(prompt):
     new_user_input_ids = dialo_tokenizer.encode(prompt + dialo_tokenizer.eos_token, return_tensors='pt')
-    bot_input_ids = new_user_input_ids
-    chat_history_ids = dialo_model.generate(bot_input_ids, max_length=1000, pad_token_id=dialo_tokenizer.eos_token_id)
-    response = dialo_tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
+    chat_history_ids = dialo_model.generate(new_user_input_ids, max_length=1000, pad_token_id=dialo_tokenizer.eos_token_id)
+    response = dialo_tokenizer.decode(chat_history_ids[:, new_user_input_ids.shape[-1]:][0], skip_special_tokens=True)
     return response
 
 # Function to translate English text to Bengali
