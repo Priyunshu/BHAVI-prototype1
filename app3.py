@@ -1,3 +1,4 @@
+
 import streamlit as st
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM
 import torch
@@ -67,7 +68,7 @@ def recognize_speech():
     except sr.RequestError:
         return "Sorry, there was an error with the speech recognition service."
 
-# Streamlit UI Styling and JavaScript for Audio Recording
+# Streamlit UI Styling
 st.markdown(
     """
     <style>
@@ -130,35 +131,6 @@ st.markdown(
         margin-top: 0.5cm;  /* Move buttons down by 0.5 cm */
     }
     </style>
-    <script>
-    async function startRecording() {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        const audioChunks = [];
-
-        mediaRecorder.ondataavailable = event => {
-            audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            audio.play();
-
-            // Send audio to server
-            fetch('/upload', {
-                method: 'POST',
-                body: audioBlob
-            }).then(response => response.text()).then(text => {
-                document.getElementById('speech-text').innerText = text;
-            });
-        };
-
-        mediaRecorder.start();
-        setTimeout(() => mediaRecorder.stop(), 5000); // Stop recording after 5 seconds
-    }
-    </script>
     """,
     unsafe_allow_html=True
 )
@@ -172,15 +144,31 @@ with st.container():
    
     col1, col2 = st.columns([0.1, 0.1])
     with col1:
-        st.markdown("<button onclick='startRecording()'>Record Speech 🗣️</button>", unsafe_allow_html=True)  # Add record button
+        record_button = st.button(" 🗣️ ", key="record", help="Record Speech Input")  # Microphone icon button
 
     with col2:
         send_button = st.button("let's go")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Placeholder for recognized speech
-st.markdown("<div id='speech-text'></div>", unsafe_allow_html=True)
+if record_button:
+    st.write(" কথা বলুন ")
+    speech_input = recognize_speech()
+    st.write(f"আমি যা শুনেছি: {speech_input}")
+   
+    # Translate Bengali speech input to English
+    english_input = translator.translate(speech_input, src='bn', dest='en').text
+    st.write(f"Translated Speech Input : {english_input}")
+   
+    if english_input:
+        response = generate_response(english_input)
+        bengali_response = translate_to_bengali(response)
+       
+        st.markdown("<div class='response'><b>প্রতিক্রিয়া:</b></div>", unsafe_allow_html=True)
+        st.write(bengali_response)
+       
+        audio_file = text_to_speech(bengali_response)
+        st.audio(audio_file, format='audio/mp3')
 
 if send_button:
     if user_input:
