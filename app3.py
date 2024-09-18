@@ -5,11 +5,10 @@ from gtts import gTTS
 from io import BytesIO
 from mtranslate import translate
 from groq import Groq
-from tempfile import NamedTemporaryFile
 
 # Streamlit page configuration
 st.set_page_config(
-    page_title="BHAV (Prototype 2)",
+    page_title="BHAVI (Prototype 2)",
     page_icon="",
     layout="centered"
 )
@@ -30,7 +29,7 @@ if "chat_history" not in st.session_state:
 if "play_audio" not in st.session_state:
     st.session_state.play_audio = True  # Default to play audio
 
-# Streamlit page title
+# Title and logo
 st.markdown("""
     <style>
         .title-container {
@@ -40,21 +39,20 @@ st.markdown("""
         }
 
         .title-container img {
-            height: 70px;
-            width: 70px;
+            height: 80px;
             border-radius: 50%;
             margin-right: 10px;
         }
 
         .title-container .title-text {
             font-family: 'Arial', sans-serif;
-            color: #FFFFFF;
-            font-size: 1.8em;
+            color: #D8BFD8;
+            font-size: 1.5em;
         }
     </style>
     <div class="title-container">
         <img src="bhav.png" alt="Bengali Logo">
-        <div class="title-text">BHAV (Prototype 2)</div>
+        <div class="title-text">BHAVI (Prototype 2)</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -70,7 +68,7 @@ def text_to_speech(text, lang='bn'):
 def translate_text(text, src_lang='bn', dest_lang='en'):
     return translate(text, dest_lang, src_lang)
 
-# Handle form submission
+# Function to handle form submission
 def handle_form_submission(user_prompt):
     st.chat_message("user").markdown(user_prompt)
     st.session_state.chat_history.append({"role": "user", "content": user_prompt})
@@ -105,6 +103,7 @@ def handle_form_submission(user_prompt):
         audio_file = text_to_speech(translated_response, lang='bn')
         st.audio(audio_file, format='audio/mp3')
 
+    # Clear the input field after submission
     return ""  # Return empty string to clear input field
 
 # Main layout
@@ -119,14 +118,9 @@ with col1:
     if submit_button and user_prompt:
         user_prompt = handle_form_submission(user_prompt)
 
-# File upload for audio input
-uploaded_file = st.file_uploader("অডিও আপলোড করুন", type=["wav", "mp3"])
-
-if uploaded_file:
-    temp_audio_file = NamedTemporaryFile(delete=False)
-    temp_audio_file.write(uploaded_file.read())
-    temp_audio_file.close()
-    # You can now process the audio using a service like Google Speech API if needed
+# Placeholder for voice input
+if st.button('🎤 রেকর্ড করুন'):
+    st.write("এটি শিগগিরই আসছে")
 
 # Collapsible input history
 with st.expander("ইনপুট ইতিহাস"):
